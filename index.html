@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogo das Jarras</title>
+<style>
+  body {font-family: Arial, sans-serif; text-align:center; background:#f0f0f0;}
+  h1 {margin-top:20px;}
+  .container{ display:flex; justify-content:center; gap:40px; margin-top:40px; }
+  .jar{ width:80px; border:2px solid #333; position:relative; cursor:pointer; display:flex; align-items:flex-end; justify-content:center; background:#fff; overflow:hidden; }
+  .fill{ width:100%; background:#4da6ff; position:absolute; bottom:0; }
+  .amount{ position:absolute; color:#000; font-weight:bold; z-index:2; }
+  .label{ position:absolute; top:-25px; font-weight:bold; }
+  button{ margin-top:30px; padding:10px 20px; font-size:16px; }
+  #status{ margin-top:20px; font-size:18px; font-weight:bold; } </style>
+</head>
+<body>
+  <h1 id="title"></h1>
+  <p><b>Clique</b> em uma jarra e depois em outra para transferir água. <b>Observação</b>: Neste nível não é possível derramar água e encher novamente.</p>
+  <div class="container"></div><button onclick="resetGame()">Resetar</button>
+  <div id="status"></div><script>
+/*const levels = [
+  { goal: 1, jars: [12,7,5], start: [12,0,0] },
+  { goal: 2, jars: [8,5,3], start: [8,0,0] },
+  { goal: 4, jars: [9,7,4], start: [9,0,0] }
+];*/
+const levels = [
+  { goal: 1, jars: [12,7,5], start: [12,0,0] },
+  { goal: 8, jars: [10,7,3], start: [10,0,0] },
+  { goal: 7, jars: [11,6,5], start: [11,0,0] }
+];
+
+let currentLevel = 0;
+let selected = null;
+
+function loadLevel(index){
+  const level = levels[index];
+  const container = document.querySelector('.container');
+
+  document.getElementById('title').innerText = `Nível ${index+1} - Medir ${level.goal} Litro${level.goal>1?'s':''}`;
+
+  container.innerHTML = '';
+
+  level.jars.forEach((cap, i) => {
+    const jar = document.createElement('div');
+    jar.className = 'jar';
+    jar.dataset.cap = cap;
+    jar.dataset.amount = level.start[i];
+    jar.style.height = (cap * 20) + 'px';
+
+    jar.innerHTML = `
+      <div class="label">${cap}L</div>
+      <div class="fill"></div>
+      <div class="amount"></div>
+    `;
+
+    container.appendChild(jar);
+  });
+
+  bindEvents();
+  updateUI();
+}
+
+function bindEvents(){
+  const jars = document.querySelectorAll('.jar');
+
+  jars.forEach(jar => {
+    jar.addEventListener('click', () => {
+      if(!selected){
+        selected = jar;
+        jar.style.borderColor = 'red';
+      } else {
+        transfer(selected, jar);
+        selected.style.borderColor = '#333';
+        selected = null;
+        updateUI();
+        checkWin();
+      }
+    });
+  });
+}
+
+function updateUI(){
+  document.querySelectorAll('.jar').forEach(jar => {
+    const cap = parseInt(jar.dataset.cap);
+    const amount = parseInt(jar.dataset.amount);
+    const fill = jar.querySelector('.fill');
+    const text = jar.querySelector('.amount');
+
+    fill.style.height = (amount / cap * 100) + '%';
+    text.innerText = amount + 'L / ' + cap + 'L';
+  });
+}
+
+function checkWin(){
+  const level = levels[currentLevel];
+
+  document.querySelectorAll('.jar').forEach(jar => {
+    if(parseInt(jar.dataset.amount) === level.goal){
+      document.getElementById('status').innerText = '✅ Nível concluído!';
+
+      setTimeout(() => {
+        currentLevel++;
+
+        if(currentLevel < levels.length){
+          document.getElementById('status').innerText = '';
+          loadLevel(currentLevel);
+        } else {
+          document.getElementById('status').innerText = '🏆 Você zerou o jogo!';
+        }
+      }, 1000);
+    }
+  });
+}
+
+function transfer(from, to){
+  if(from === to) return;
+
+  let fromAmount = parseInt(from.dataset.amount);
+  let toAmount = parseInt(to.dataset.amount);
+  let toCap = parseInt(to.dataset.cap);
+
+  let space = toCap - toAmount;
+  let move = Math.min(space, fromAmount);
+
+  from.dataset.amount = fromAmount - move;
+  to.dataset.amount = toAmount + move;
+}
+
+function resetGame(){
+  loadLevel(currentLevel);
+  document.getElementById('status').innerText = '';
+}
+
+loadLevel(currentLevel);
+  </script>
+  ©2026 Viniciusav
+</body>
+</html>
