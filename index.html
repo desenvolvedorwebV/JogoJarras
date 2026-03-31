@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,6 +54,30 @@
     <div class="atribuicao">©2026 Viniciusav</c>
   </center>
   <script>
+  let currentUses = {};
+  
+  function formatUses(action)
+  {
+    const perm = levels[currentLevel].permissions[action];
+  
+    if(!perm.value)
+      return 'não é possível';
+  
+    if(perm.uses === "inf")
+      return 'infinitas vezes';
+  
+    if(perm.uses === 0)
+      return 'nenhuma vez';
+  
+    return `${perm.uses} vez(es)`;
+  }
+  
+  function formatUsesLabel(uses)
+  {
+    if(uses === "inf") return "∞";
+    return uses;
+  }
+  
   function showStatus(msg)
   {
     const status = document.getElementById('status');
@@ -83,8 +108,36 @@
     const emptyBtn = document.querySelector('button[onclick="emptyJar()"]');
     const fillBtn = document.querySelector('button[onclick="fillJar()"]');
   
-    emptyBtn.disabled = !level.permissions.emptyJar.value;
-    fillBtn.disabled = !level.permissions.fillJar.value;
+    const emptyPerm = level.permissions.emptyJar;
+    const fillPerm = level.permissions.fillJar;
+  
+    const emptyAllowed = emptyPerm.value &&
+      (currentUses.emptyJar === "inf" || currentUses.emptyJar > 0);
+  
+    const fillAllowed = fillPerm.value &&
+      (currentUses.fillJar === "inf" || currentUses.fillJar > 0);
+  
+    // Estado (habilitado/desabilitado)
+    emptyBtn.disabled = !emptyAllowed;
+    fillBtn.disabled = !fillAllowed;
+  
+    // TEXTO
+    emptyBtn.innerText = emptyPerm.value
+      ? `❌ Esvaziar (${formatUsesLabel(currentUses.emptyJar)})`
+      : `❌ Esvaziar`;
+  
+    fillBtn.innerText = fillPerm.value
+      ? `✅ Encher (${formatUsesLabel(currentUses.fillJar)})`
+      : `✅ Encher`;
+  }
+  
+  function useAction(action)
+  {
+    if(currentUses[action] === "inf") return;
+  
+    currentUses[action]--;
+  
+    updateButtons();
   }
   
   function fillJar()
@@ -104,6 +157,13 @@
       setTimeout(hideStatus, 1200);
       return;
     }
+    
+    if(currentUses.fillJar !== "inf" && currentUses.fillJar <= 0)
+    {
+      showStatus("🚫 Você não pode mais encher jarras!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
   
     const cap = parseInt(selected.dataset.cap);
     
@@ -118,7 +178,8 @@
   
     selected.style.borderColor = '#333';
     selected = null;
-  
+
+    useAction("fillJar");
     updateUI();
     checkWin();
   }
@@ -133,7 +194,14 @@
       setTimeout(hideStatus, 1200);
       return;
     }
-  
+
+    if(currentUses.emptyJar !== "inf" && currentUses.emptyJar <= 0)
+    {
+      showStatus("🚫 Você não pode mais esvaziar jarras!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+    
     if(!selected)
     {
       showStatus("⚠️ Selecione uma jarra primeiro!");
@@ -141,6 +209,7 @@
       return;
     }
     
+
     if(parseInt(selected.dataset.amount) === 0)
     {
       showStatus("💧 A jarra já está vazia!");
@@ -152,7 +221,7 @@
   
     selected.style.borderColor = '#333';
     selected = null;
-  
+    useAction('emptyJar');
     updateUI();
     checkWin();
   }
@@ -173,7 +242,7 @@
       start: [12,0,0],
       winCondition: { type: "exact", value: 1 },
       permissions: {
-        emptyJar: { value: 0, uses:0},//para não limitar quantidade, usar a string infinitas
+        emptyJar: { value: 0, uses:0},//para não limitar quantidade, usar a string inf
         fillJar: { value: 0, uses:0}
       }
     },
@@ -203,6 +272,15 @@
         emptyJar: { value: 0, uses:0},
         fillJar: { value: 0, uses:0}
       }
+    },
+    {
+      jars: [4,9],
+      start: [0,0],
+      winCondition: { type: "exact", value: 1 },
+      permissions: {
+        emptyJar:{ value:1, uses:1},
+        fillJar: { value:1, uses:1}
+      }
     }
   ];
 
@@ -213,7 +291,12 @@
   {
     const level = levels[index];
     const container = document.querySelector('.container');
-  
+    
+    currentUses = {
+      emptyJar: level.permissions.emptyJar.uses,
+      fillJar: level.permissions.fillJar.uses
+    };  
+ 
     document.getElementById('title').innerText = `Nível ${index+1} - ${getWinText(level.winCondition)}`;
     container.innerHTML = '';
   
@@ -231,8 +314,16 @@
       `;
       container.appendChild(jar);
       
-      document.getElementById('regra1').innerText = level.permissions.emptyJar.value ? `• É possível esvaziar jarra(s) ${level.permissions.emptyJar.uses} vez(es);` : '• Não é possível esvaziar jarra(s) (Jogar água fora);';
-      document.getElementById('regra2').innerText = level.permissions.fillJar.value ? `• É possível encher jarra(s) ${level.permissions.fillJar.uses} vez(es)` : '• Não é possível encher jarra(s).';
+      document.getElementById('regra1').innerText =
+        level.permissions.emptyJar.value
+          ? `• É possível esvaziar jarra(s) ${formatUses("emptyJar")};`
+          : '• Não é possível esvaziar jarra(s) (Jogar água fora);';
+      
+      document.getElementById('regra2').innerText =
+        level.permissions.fillJar.value
+          ? `• É possível encher jarra(s) ${formatUses("fillJar")};`
+          : '• Não é possível encher jarra(s).';
+      
       
     });
   
@@ -310,6 +401,9 @@
         else 
         {
           showStatus('🏆 Você zerou o jogo!');
+          currentLevel = 0;
+          loadLevel(currentLevel);
+          setTimeout(() => {hideStatus();});
         }
       }, 1500);
     }
