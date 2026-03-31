@@ -4,136 +4,340 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jogo das Jarras</title>
 <style>
-  body {font-family: Arial, sans-serif; text-align:center; background:#f0f0f0;}
-  h1 {margin-top:20px;}
-  .container{ display:flex; justify-content:center; gap:40px; margin-top:40px; }
+  body {font-family: Arial, sans-serif; background:#f0f0f0;user-select:none}
+  h2 {margin-top:20px;text-align:center;}
+  p {text-align:justify}
+  .toggle-fieldset .conteudo-instrucoes {display: none;}
+  .toggle-fieldset:has(input:checked) .conteudo-instrucoes {display: block;}  
+  .container{ display:flex; justify-content:center; gap:40px; margin-top:15px; }
   .jar{ width:80px; border:2px solid #333; position:relative; cursor:pointer; display:flex; align-items:flex-end; justify-content:center; background:#fff; overflow:hidden; }
   .fill{ width:100%; background:#4da6ff; position:absolute; bottom:0; }
   .amount{ position:absolute; color:#000; font-weight:bold; z-index:2; }
   .label{ position:absolute; top:-25px; font-weight:bold; }
-  button{ margin-top:30px; padding:10px 20px; font-size:16px; }
-  #status{ margin-top:20px; font-size:18px; font-weight:bold; } </style>
+  button{ margin-top:15px; padding:10px 20px; font-size:16px; }
+  #status{ display: none; position: fixed; top: 100px; left: 50%; transform: translateX(-50%); background: white; padding: 12px 20px; border: 2px solid black; border-radius: 8px; font-size: 18px; font-weight: bold; z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}  
+ .atribuicao{ position:fixed; bottom:0; left:0; width:100%; color:black; text-align:center; padding:8px; font-size:12px;}
+</style>
 </head>
 <body>
-  <h1 id="title"></h1>
-  <p><b>Clique</b> em uma jarra e depois em outra para transferir água. <b>Observação</b>: Neste nível não é possível derramar água e encher novamente.</p>
-  <div class="container"></div><button onclick="resetGame()">Resetar</button>
-  <div id="status"></div><script>
-/*const levels = [
-  { goal: 1, jars: [12,7,5], start: [12,0,0] },
-  { goal: 2, jars: [8,5,3], start: [8,0,0] },
-  { goal: 4, jars: [9,7,4], start: [9,0,0] }
-];*/
-const levels = [
-  { goal: 1, jars: [12,7,5], start: [12,0,0] },
-  { goal: 8, jars: [10,7,3], start: [10,0,0] },
-  { goal: 7, jars: [11,6,5], start: [11,0,0] }
-];
+  <h2 id="title"></h2>
+  <div id="status">a</div>
+  <fieldset style="border:2px solid black" id="fieldset">
+    <legend>
+      <label>
+        <input type="checkbox" id="toggleFieldset" checked> <b style="top:-3px;position:relative;">INSTRUÇÕES:</b>        
+      </label>
+    </legend>
+    <div class="conteudo-instrucoes">
+      <p>
+        <b>Como Jogar:</b>
+        <br>• Selecione uma jarra com água e depois toque em outra jarra para transferir água entre elas.
+        <br>• A transferência de água continua automaticamente até esvaziar a jarra de origem ou encher a de destino.
+      </p>
+      <p>
+        <b>Objetivo:</b>
+        <br>• Cumpra a meta indicada no título do nível.
+      </p>
+      <p>
+        <b>Regras Exclusivas do Nível:</b>
+        <br><c id="regra1"></c>
+        <br><c id="regra2"></c>
+      </p>
+    </div>
+  </fieldset>
+  <div class="container"></div>
+  <center>
+    <button onclick="resetGame()">🔄 Resetar Nível</button>
+    <button onclick="emptyJar()">❌ Esvaziar</button>
+    <button onclick="fillJar()">✅ Encher</button>
+    <div class="atribuicao">©2026 Viniciusav</c>
+  </center>
+  <script>
+  function showStatus(msg)
+  {
+    const status = document.getElementById('status');
+    status.innerText = msg;
+    status.style.display = 'block';
+  }
+  
+  function hideStatus()
+  {
+    document.getElementById('status').style.display = 'none';
+  }
+  
+  function getWinText(cond)
+  {
+    switch(cond.type)
+    {
+      case "exact":
+        return `Medir ${cond.value}L em qualquer jarra`;
+      case "exactCount":
+        return `${cond.count} jarras com ${cond.value}L`;
+    }
+  }
+  
+  function updateButtons()
+  {
+    const level = levels[currentLevel];
+  
+    const emptyBtn = document.querySelector('button[onclick="emptyJar()"]');
+    const fillBtn = document.querySelector('button[onclick="fillJar()"]');
+  
+    emptyBtn.disabled = !level.permissions.emptyJar.value;
+    fillBtn.disabled = !level.permissions.fillJar.value;
+  }
+  
+  function fillJar()
+  {
+    const level = levels[currentLevel];
+  
+    if(!level.permissions.fillJar.value)
+    {
+      showStatus("🚫 Este nível não permite encher jarras!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    if(!selected)
+    {
+      showStatus("⚠️ Selecione uma jarra primeiro!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    const cap = parseInt(selected.dataset.cap);
+    
+    if(parseInt(selected.dataset.amount) === cap)
+    {
+      showStatus("💧 A jarra já está cheia!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    selected.dataset.amount = cap;
+  
+    selected.style.borderColor = '#333';
+    selected = null;
+  
+    updateUI();
+    checkWin();
+  }
+  
+  function emptyJar()
+  {
+    const level = levels[currentLevel];
+  
+    if(!level.permissions.emptyJar.value)
+    {
+      showStatus("🚫 Este nível não permite esvaziar jarras!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    if(!selected)
+    {
+      showStatus("⚠️ Selecione uma jarra primeiro!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+    
+    if(parseInt(selected.dataset.amount) === 0)
+    {
+      showStatus("💧 A jarra já está vazia!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    selected.dataset.amount = 0;
+  
+    selected.style.borderColor = '#333';
+    selected = null;
+  
+    updateUI();
+    checkWin();
+  }
+  
+  const checkbox = document.getElementById('toggleFieldset');
+  const conteudo = document.querySelector('.conteudo-instrucoes');
+  //const fieldset = document.getElementById('fieldset');
 
-let currentLevel = 0;
-let selected = null;
-
-function loadLevel(index){
-  const level = levels[index];
-  const container = document.querySelector('.container');
-
-  document.getElementById('title').innerText = `Nível ${index+1} - Medir ${level.goal} Litro${level.goal>1?'s':''}`;
-
-  container.innerHTML = '';
-
-  level.jars.forEach((cap, i) => {
-    const jar = document.createElement('div');
-    jar.className = 'jar';
-    jar.dataset.cap = cap;
-    jar.dataset.amount = level.start[i];
-    jar.style.height = (cap * 20) + 'px';
-
-    jar.innerHTML = `
-      <div class="label">${cap}L</div>
-      <div class="fill"></div>
-      <div class="amount"></div>
-    `;
-
-    container.appendChild(jar);
+  checkbox.addEventListener('change', () => {
+    conteudo.style.display = checkbox.checked ? 'block' : 'none';
+    //fieldset.style.border = checkbox.checked ? '2px solid black' : 'none';
   });
-
-  bindEvents();
-  updateUI();
-}
-
-function bindEvents(){
-  const jars = document.querySelectorAll('.jar');
-
-  jars.forEach(jar => {
-    jar.addEventListener('click', () => {
-      if(!selected){
-        selected = jar;
-        jar.style.borderColor = 'red';
-      } else {
-        transfer(selected, jar);
-        selected.style.borderColor = '#333';
-        selected = null;
-        updateUI();
-        checkWin();
+  
+  conteudo.style.display = checkbox.checked ? 'block' : 'none';
+  const levels = [
+    {
+      jars: [12,7,5],
+      start: [12,0,0],
+      winCondition: { type: "exact", value: 1 },
+      permissions: {
+        emptyJar: { value: 0, uses:0},//para não limitar quantidade, usar a string infinitas
+        fillJar: { value: 0, uses:0}
       }
+    },
+    { 
+      jars: [10,7,3],
+      start: [10,0,0],
+      winCondition: { type: "exact", value: 8 },
+      permissions: {
+        emptyJar: { value: 0, uses: 0},
+        fillJar: { value: 0, uses:0}
+      }
+    },
+    { 
+      jars: [11,6,5], 
+      start: [11,0,0],
+      winCondition: { type: "exact", value: 7 },
+      permissions: {
+        emptyJar: { value: 0, uses:0},
+        fillJar: { value: 0, uses:0}
+      }
+    },
+    {
+      jars: [8,5,3],
+      start: [8,0,0],
+      winCondition: { type: "exactCount", value: 4, count: 2 },
+      permissions: {
+        emptyJar: { value: 0, uses:0},
+        fillJar: { value: 0, uses:0}
+      }
+    }
+  ];
+
+  let currentLevel = 0;
+  let selected = null;
+
+  function loadLevel(index)
+  {
+    const level = levels[index];
+    const container = document.querySelector('.container');
+  
+    document.getElementById('title').innerText = `Nível ${index+1} - ${getWinText(level.winCondition)}`;
+    container.innerHTML = '';
+  
+    level.jars.forEach((cap, i) => {
+      const jar = document.createElement('div');
+      jar.className = 'jar';
+      jar.dataset.cap = cap;
+      jar.dataset.amount = level.start[i];
+      jar.style.height = (cap * 20) + 'px';
+  
+      jar.innerHTML = `
+        <div class="label">${cap}L</div>
+        <div class="fill"></div>
+        <div class="amount"></div>
+      `;
+      container.appendChild(jar);
+      
+      document.getElementById('regra1').innerText = level.permissions.emptyJar.value ? `• É possível esvaziar jarra(s) ${level.permissions.emptyJar.uses} vez(es);` : '• Não é possível esvaziar jarra(s) (Jogar água fora);';
+      document.getElementById('regra2').innerText = level.permissions.fillJar.value ? `• É possível encher jarra(s) ${level.permissions.fillJar.uses} vez(es)` : '• Não é possível encher jarra(s).';
+      
     });
-  });
-}
+  
+    bindEvents();
+    updateUI();
+    updateButtons();
+  }
 
-function updateUI(){
-  document.querySelectorAll('.jar').forEach(jar => {
-    const cap = parseInt(jar.dataset.cap);
-    const amount = parseInt(jar.dataset.amount);
-    const fill = jar.querySelector('.fill');
-    const text = jar.querySelector('.amount');
+  function bindEvents()
+  {
+    const jars = document.querySelectorAll('.jar');
+  
+    jars.forEach(jar => {
+      jar.addEventListener('click', () => {
+        if(!selected)
+        {
+          selected = jar;
+          jar.style.borderColor = 'red';
+        } 
+        else 
+        {
+          transfer(selected, jar);
+          selected.style.borderColor = '#333';
+          selected = null;
+          updateUI();
+          checkWin();
+        }
+      });
+    });
+  }
 
-    fill.style.height = (amount / cap * 100) + '%';
-    text.innerText = amount + 'L / ' + cap + 'L';
-  });
-}
-
-function checkWin(){
-  const level = levels[currentLevel];
-
-  document.querySelectorAll('.jar').forEach(jar => {
-    if(parseInt(jar.dataset.amount) === level.goal){
-      document.getElementById('status').innerText = '✅ Nível concluído!';
-
+  function updateUI()
+  {
+    document.querySelectorAll('.jar').forEach(jar => {
+      const cap = parseInt(jar.dataset.cap);
+      const amount = parseInt(jar.dataset.amount);
+      const fill = jar.querySelector('.fill');
+      const text = jar.querySelector('.amount');
+      fill.style.height = (amount / cap * 100) + '%';
+      text.innerText = amount + 'L / ' + cap + 'L';
+    });
+  }
+  
+  function checkWin()
+  {
+    const level = levels[currentLevel];
+    const jars = document.querySelectorAll('.jar');
+    const amounts = Array.from(jars).map(j => parseInt(j.dataset.amount));
+  
+    let win = false;
+  
+    switch(level.winCondition.type)
+    {
+      case "exact":
+        win = amounts.some(a => a === level.winCondition.value);
+        break;
+  
+      case "exactCount":
+        win = amounts.filter(a => a === level.winCondition.value).length === level.winCondition.count;
+        break;
+    }
+  
+    if(win)
+    {
+      showStatus('✅ Nível concluído!');
+  
       setTimeout(() => {
         currentLevel++;
-
-        if(currentLevel < levels.length){
-          document.getElementById('status').innerText = '';
+  
+        if(currentLevel < levels.length)
+        {
+          hideStatus();
           loadLevel(currentLevel);
-        } else {
-          document.getElementById('status').innerText = '🏆 Você zerou o jogo!';
+        } 
+        else 
+        {
+          showStatus('🏆 Você zerou o jogo!');
         }
-      }, 1000);
+      }, 1500);
     }
-  });
-}
+  }
 
-function transfer(from, to){
-  if(from === to) return;
+  function transfer(from, to)
+  {
+    if(from === to) 
+      return;
+  
+    let fromAmount = parseInt(from.dataset.amount);
+    let toAmount = parseInt(to.dataset.amount);
+    let toCap = parseInt(to.dataset.cap);
+  
+    let space = toCap - toAmount;
+    let move = Math.min(space, fromAmount);
+  
+    from.dataset.amount = fromAmount - move;
+    to.dataset.amount = toAmount + move;
+  }
 
-  let fromAmount = parseInt(from.dataset.amount);
-  let toAmount = parseInt(to.dataset.amount);
-  let toCap = parseInt(to.dataset.cap);
+  function resetGame()
+  {
+    loadLevel(currentLevel);
+    document.getElementById('status').innerText = '';
+  }
 
-  let space = toCap - toAmount;
-  let move = Math.min(space, fromAmount);
-
-  from.dataset.amount = fromAmount - move;
-  to.dataset.amount = toAmount + move;
-}
-
-function resetGame(){
   loadLevel(currentLevel);
-  document.getElementById('status').innerText = '';
-}
-
-loadLevel(currentLevel);
   </script>
-  ©2026 Viniciusav
 </body>
 </html>
