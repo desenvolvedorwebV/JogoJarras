@@ -309,6 +309,15 @@
         fillJar: { value: 0, uses:0}
       }
     },
+    {
+      jars: [12,8,5],
+      start: [12,0,0],
+      winCondition: { type: "exact", value: 6 },
+      permissions: {
+        emptyJar: { value: 0, uses:0},//para não limitar quantidade, usar a string inf
+        fillJar: { value: 0, uses:0}
+      }
+    },
     { 
       jars: [10,7,3],
       start: [10,0,0],
@@ -520,7 +529,7 @@
   box-shadow:0 5px 15px rgba(0,0,0,0.3);
   text-align:center;
 ">
-  <div style="margin-bottom:10px;"><b>Ir para nível</b></div>
+  <div style="margin-bottom:10px;"><b>Ir para o nível:</b></div>
   <input id="levelInput" type="number" min="1" style="width:80px; padding:5px;">
   <br><br>
   <button onclick="goToLevel()">Ir</button>
