@@ -36,13 +36,13 @@
         <br>• A transferência de água continua automaticamente até esvaziar a jarra de origem ou encher a de destino.
       </p>
       <p>
+        <b>Objetivo:</b>
+        <br>• Cumpra a meta indicada no título do nível.
+      </p>
+      <p>
         <b>Regras Exclusivas do Nível:</b>
         <br><c id="regra1"></c>
         <br><c id="regra2"></c>
-      </p>
-      <p>
-        <b>Objetivo:</b>
-        <br>• Cumpra a meta indicada no título do nível.
       </p>
     </div>
   </fieldset>
@@ -55,6 +55,69 @@
   </center>
   <script>
   let currentUses = {};
+  let tapCount = 0;
+  let tapTimer = null;
+  
+  function openLevelJump()
+  {
+    const input = document.getElementById('levelInput');
+    input.value = '';
+    document.getElementById('levelJump').style.display = 'block';
+    input.focus();
+  }
+  
+  function closeLevelJump()
+  {
+    document.getElementById('levelJump').style.display = 'none';
+  }
+
+  function goToLevel()
+  {
+    const input = document.getElementById('levelInput');
+    let level = parseInt(input.value);
+  
+    if(isNaN(level))
+    {
+      showStatus("⚠️ Digite um número válido!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    level--; // usuário digita baseado em 1
+  
+    if(level < 0 || level >= levels.length)
+    {
+      showStatus("🚫 Nível inexistente!");
+      setTimeout(hideStatus, 1200);
+      return;
+    }
+  
+    currentLevel = level;
+    closeLevelJump();
+    loadLevel(currentLevel);
+  }
+  
+  function handleTripleTap()
+  {
+    tapCount++;
+    
+    // Limpa timer anterior
+    clearTimeout(tapTimer);
+    
+    // Define tempo máximo entre cliques (ex: 500ms)
+    tapTimer = setTimeout(() => {
+     tapCount = 0;
+    }, 500); 
+     
+    if(tapCount === 3)
+    {
+      tapCount = 0;
+      openLevelJump();
+    }
+  }
+  
+  const title = document.getElementById('title');
+  title.addEventListener('click', handleTripleTap);
   
   function formatUses(action)
   {
@@ -281,12 +344,21 @@
         emptyJar:{ value:1, uses:1},
         fillJar: { value:1, uses:1}
       }
+    },
+    {
+      jars: [5,3],
+      start: [0,0],
+      winCondition: { type: "exact", value: 4 },
+      permissions: {
+        emptyJar:{ value:1, uses:"inf"},
+        fillJar: { value:1, uses:"inf"}
+      }
     }
   ];
 
   let currentLevel = 0;
   let selected = null;
-
+  
   function loadLevel(index)
   {
     const level = levels[index];
@@ -433,5 +505,26 @@
 
   loadLevel(currentLevel);
   </script>
+  
+<div id="levelJump" style="
+  display:none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  background:white;
+  padding:20px;
+  border:2px solid black;
+  border-radius:10px;
+  z-index:1000;
+  box-shadow:0 5px 15px rgba(0,0,0,0.3);
+  text-align:center;
+">
+  <div style="margin-bottom:10px;"><b>Ir para nível</b></div>
+  <input id="levelInput" type="number" min="1" style="width:80px; padding:5px;">
+  <br><br>
+  <button onclick="goToLevel()">Ir</button>
+  <button onclick="closeLevelJump()">Cancelar</button>
+</div>
 </body>
 </html>
